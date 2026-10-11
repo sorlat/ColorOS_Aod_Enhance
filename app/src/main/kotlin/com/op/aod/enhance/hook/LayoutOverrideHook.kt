@@ -4,6 +4,7 @@ import android.content.res.AssetManager
 import android.util.Log
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import de.robv.android.xposed.XC_MethodHook
+import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import java.io.ByteArrayInputStream
 
@@ -33,26 +34,41 @@ internal object LayoutOverrideHook {
         "aod/aod_layout_0010000.xml",
     )
 
+    /** logcat が読めない端末向けに、LSPosed のログ画面にも出す。 */
+    private fun log(msg: String, t: Throwable? = null) {
+        runCatching { Log.i(TAG, msg) }
+        runCatching { XposedBridge.log("$TAG: $msg") }
+        if (t != null) runCatching { XposedBridge.log(t) }
+    }
+
     fun YukiBaseHooker.hookLayoutOverride() {
-        XposedHelpers.findAndHookMethod(
-            AssetManager::class.java,
-            "open",
-            String::class.java,
-            Integer.TYPE,
-            object : XC_MethodHook() {
-                override fun beforeHookedMethod(param: MethodHookParam) {
-                    val name = param.args[0] as? String ?: return
-                    if (name !in TARGETS) return
-                    runCatching {
-                        param.result = ByteArrayInputStream(buildLayout().toByteArray(Charsets.UTF_8))
-                        Log.i(TAG, "layout override applied: $name")
-                    }.onFailure {
-                        Log.w(TAG, "layout override failed: $name", it)
+        log("hookLayoutOverride() called")
+        try {
+            XposedHelpers.findAndHookMethod(
+                AssetManager::class.java,
+                "open",
+                String::class.java,
+                Integer.TYPE,
+                object : XC_MethodHook() {
+                    override fun beforeHookedMethod(param: MethodHookParam) {
+                        val name = param.args[0] as? String ?: return
+                        if (name.startsWith("aod/aod_layout_")) {
+                            log("asset open: $name")
+                        }
+                        if (name !in TARGETS) return
+                        try {
+                            param.result = ByteArrayInputStream(buildLayout().toByteArray(Charsets.UTF_8))
+                            log("layout override applied: $name")
+                        } catch (e: Throwable) {
+                            log("layout override failed: $name", e)
+                        }
                     }
                 }
-            }
-        )
-        Log.i(TAG, "layout override hook registered")
+            )
+            log("layout override hook registered")
+        } catch (e: Throwable) {
+            log("layout override hook registration FAILED", e)
+        }
     }
 
     private fun buildLayout(): String = LAYOUT
