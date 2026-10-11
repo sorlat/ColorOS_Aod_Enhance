@@ -10,6 +10,7 @@ import com.op.aod.enhance.hook.BrightnessHook.hookRunningBrightnessBoost
 import com.op.aod.enhance.hook.PanoramicHook.hookPanoramicAllDaySupport
 import com.op.aod.enhance.hook.SingleClickBlockHook.hookSingleClickWakeUpBlock
 import com.op.aod.enhance.hook.LowLightHideHook.hookLowLightAodHide
+import com.op.aod.enhance.hook.LayoutOverrideHook.hookLayoutOverride
 
 /**
  * OP AOD Enhance - 主入口
@@ -58,6 +59,7 @@ object MainHook : YukiBaseHooker() {
             runCatching { hookPanoramicAllDaySupport() }
             runCatching { hookSingleClickWakeUpBlock() }
             runCatching { hookLowLightAodHide() }
+            runCatching { hookLayoutOverride() }
         }
         loadApp(name = OPLUS_AOD) {
             runCatching { hookAodAllDaySupportSettings() }
